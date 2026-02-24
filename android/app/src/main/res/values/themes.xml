@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Manifest references @style/Theme.FocusFlow -->
+    <style name="Theme.FocusFlow" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Provide minimal required attributes; Compose Material3 supplies colors in code. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+    </style>
+</resources>

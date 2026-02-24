@@ -1,0 +1,352 @@
+{
+  "app_name": "FocusFlow",
+  "project_type": "other",
+  "platforms": [
+    "android"
+  ],
+  "session_strategy": "none",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "auth_required": false,
+      "description": "Healthcheck. Must return JSON body {\"status\":\"ok\"}."
+    }
+  ],
+  "data_models": [
+    {
+      "name": "HealthResponse",
+      "description": "Response model for healthcheck endpoint.",
+      "fields": [
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Always 'ok' on success."
+        }
+      ]
+    },
+    {
+      "name": "ErrorResponse",
+      "description": "Canonical error response shape for all backend errors.",
+      "fields": [
+        {
+          "name": "error",
+          "type": "object",
+          "required": true,
+          "description": "Error container."
+        }
+      ]
+    },
+    {
+      "name": "ErrorObject",
+      "description": "Error details object nested in ErrorResponse.error.",
+      "fields": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "description": "Stable machine-readable code (e.g., 'bad_request', 'not_found', 'internal')."
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable error message."
+        },
+        {
+          "name": "details",
+          "type": "object",
+          "required": false,
+          "description": "Optional structured details for debugging/validation."
+        }
+      ]
+    },
+    {
+      "name": "Task",
+      "description": "Android local task model for task list, estimates, and completion tracking.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string (uuid)",
+          "required": true,
+          "description": "Primary identifier."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Task title."
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": "Optional task notes."
+        },
+        {
+          "name": "estimate_pomodoros",
+          "type": "integer",
+          "required": true,
+          "description": "Estimated number of pomodoros (>= 0)."
+        },
+        {
+          "name": "completed_pomodoros",
+          "type": "integer",
+          "required": true,
+          "description": "Completed pomodoros attributed to this task (>= 0)."
+        },
+        {
+          "name": "is_completed",
+          "type": "boolean",
+          "required": true,
+          "description": "Whether the task is completed."
+        },
+        {
+          "name": "created_at_epoch_ms",
+          "type": "integer",
+          "required": true,
+          "description": "Creation timestamp (epoch ms)."
+        },
+        {
+          "name": "updated_at_epoch_ms",
+          "type": "integer",
+          "required": true,
+          "description": "Last update timestamp (epoch ms)."
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "description": "Android local record of a completed timer segment (work/break/long_break).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string (uuid)",
+          "required": true,
+          "description": "Primary identifier."
+        },
+        {
+          "name": "type",
+          "type": "string enum",
+          "required": true,
+          "description": "One of: 'work', 'break', 'long_break'."
+        },
+        {
+          "name": "start_epoch_ms",
+          "type": "integer",
+          "required": true,
+          "description": "Segment start time (epoch ms)."
+        },
+        {
+          "name": "end_epoch_ms",
+          "type": "integer",
+          "required": true,
+          "description": "Segment end time (epoch ms)."
+        },
+        {
+          "name": "duration_ms",
+          "type": "integer",
+          "required": true,
+          "description": "Computed duration in milliseconds; must equal end_epoch_ms - start_epoch_ms."
+        },
+        {
+          "name": "linked_task_id",
+          "type": "string (uuid)",
+          "required": false,
+          "description": "Optional Task.id linked when starting a work segment."
+        },
+        {
+          "name": "plan_label",
+          "type": "string",
+          "required": false,
+          "description": "Optional label (e.g., 'classic' or custom plan name) for analytics/export."
+        }
+      ]
+    },
+    {
+      "name": "TimerPlan",
+      "description": "Android local timer configuration for classic defaults or advanced custom sequences.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string (uuid)",
+          "required": true,
+          "description": "Primary identifier."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "User-visible name."
+        },
+        {
+          "name": "mode",
+          "type": "string enum",
+          "required": true,
+          "description": "One of: 'classic', 'custom_sequence'."
+        },
+        {
+          "name": "classic_work_minutes",
+          "type": "integer",
+          "required": false,
+          "description": "Classic work duration minutes (default 25). Required when mode='classic'."
+        },
+        {
+          "name": "classic_break_minutes",
+          "type": "integer",
+          "required": false,
+          "description": "Classic short break minutes (default 5). Required when mode='classic'."
+        },
+        {
+          "name": "classic_long_break_minutes",
+          "type": "integer",
+          "required": false,
+          "description": "Classic long break minutes (default 15). Required when mode='classic'."
+        },
+        {
+          "name": "classic_long_break_every_work_sessions",
+          "type": "integer",
+          "required": false,
+          "description": "Long break cadence (default 4). Required when mode='classic'."
+        },
+        {
+          "name": "segments",
+          "type": "array<TimerSegment>",
+          "required": false,
+          "description": "Custom sequence segments in order. Required when mode='custom_sequence'."
+        }
+      ]
+    },
+    {
+      "name": "TimerSegment",
+      "description": "One segment in a custom sequence.",
+      "fields": [
+        {
+          "name": "type",
+          "type": "string enum",
+          "required": true,
+          "description": "One of: 'work', 'break', 'long_break'."
+        },
+        {
+          "name": "duration_minutes",
+          "type": "integer",
+          "required": true,
+          "description": "Segment duration in minutes (>= 1)."
+        }
+      ]
+    },
+    {
+      "name": "AppSettings",
+      "description": "Android local settings persisted in DataStore (not Room).",
+      "fields": [
+        {
+          "name": "theme",
+          "type": "string enum",
+          "required": true,
+          "description": "One of: 'system', 'light', 'dark'."
+        },
+        {
+          "name": "sound_enabled",
+          "type": "boolean",
+          "required": true,
+          "description": "Whether timer transition notifications may use sound (if not in DND-respect mode)."
+        },
+        {
+          "name": "vibration_enabled",
+          "type": "boolean",
+          "required": true,
+          "description": "Whether timer transition notifications may vibrate (if not in DND-respect mode)."
+        },
+        {
+          "name": "silent_notifications",
+          "type": "boolean",
+          "required": true,
+          "description": "If true, notifications must not use sound or vibration regardless of other toggles."
+        },
+        {
+          "name": "respect_dnd",
+          "type": "boolean",
+          "required": true,
+          "description": "If true, notifications must avoid sound/vibration when device is in DND (implementation must be DND-friendly)."
+        },
+        {
+          "name": "max_total_paused_minutes",
+          "type": "integer",
+          "required": true,
+          "description": "Maximum total paused minutes allowed per running segment (>= 0). When exceeded, timer must stop or force resume per TimerEngine rules."
+        },
+        {
+          "name": "segment_end_behavior",
+          "type": "string enum",
+          "required": true,
+          "description": "One of: 'auto_advance', 'prompt', 'ask_each_time'. 'ask_each_time' must prompt user at each segment end."
+        },
+        {
+          "name": "default_timer_plan_id",
+          "type": "string (uuid)",
+          "required": false,
+          "description": "Selected TimerPlan.id."
+        }
+      ]
+    }
+  ],
+  "database": {
+    "kind": "sqlite",
+    "notes": "Android: Room (SQLite) with schema versioning and at least one migration path (v1->v2). Backend: local SQLite for demo only; no auth. Backend DB is optional for current functionality but must be runnable locally.",
+    "ddl": "/* Android Room (SQLite) canonical tables (mirrors Entities)\nSchema version v2.\n\n-- v1\nCREATE TABLE tasks (\n  id TEXT PRIMARY KEY NOT NULL,\n  title TEXT NOT NULL,\n  notes TEXT,\n  estimate_pomodoros INTEGER NOT NULL DEFAULT 0,\n  completed_pomodoros INTEGER NOT NULL DEFAULT 0,\n  is_completed INTEGER NOT NULL DEFAULT 0,\n  created_at_epoch_ms INTEGER NOT NULL,\n  updated_at_epoch_ms INTEGER NOT NULL\n);\nCREATE INDEX idx_tasks_is_completed ON tasks(is_completed);\n\n-- v1 sessions without linked_task_id; v2 adds linked_task_id and index\nCREATE TABLE sessions (\n  id TEXT PRIMARY KEY NOT NULL,\n  type TEXT NOT NULL CHECK (type IN ('work','break','long_break')),\n  start_epoch_ms INTEGER NOT NULL,\n  end_epoch_ms INTEGER NOT NULL,\n  duration_ms INTEGER NOT NULL,\n  linked_task_id TEXT NULL,\n  plan_label TEXT NULL,\n  FOREIGN KEY (linked_task_id) REFERENCES tasks(id) ON DELETE SET NULL\n);\nCREATE INDEX idx_sessions_start_epoch_ms ON sessions(start_epoch_ms);\nCREATE INDEX idx_sessions_type ON sessions(type);\nCREATE INDEX idx_sessions_linked_task_id ON sessions(linked_task_id);\n\n-- Timer plans and custom segments\nCREATE TABLE timer_plans (\n  id TEXT PRIMARY KEY NOT NULL,\n  name TEXT NOT NULL,\n  mode TEXT NOT NULL CHECK (mode IN ('classic','custom_sequence')),\n  classic_work_minutes INTEGER,\n  classic_break_minutes INTEGER,\n  classic_long_break_minutes INTEGER,\n  classic_long_break_every_work_sessions INTEGER\n);\nCREATE TABLE timer_plan_segments (\n  id TEXT PRIMARY KEY NOT NULL,\n  plan_id TEXT NOT NULL,\n  position INTEGER NOT NULL,\n  type TEXT NOT NULL CHECK (type IN ('work','break','long_break')),\n  duration_minutes INTEGER NOT NULL,\n  FOREIGN KEY (plan_id) REFERENCES timer_plans(id) ON DELETE CASCADE\n);\nCREATE UNIQUE INDEX uq_timer_plan_segments_plan_pos ON timer_plan_segments(plan_id, position);\n\n-- Migration requirement\n-- v1->v2: ALTER TABLE sessions ADD COLUMN linked_task_id TEXT NULL; plus index idx_sessions_linked_task_id.\n*/"
+  },
+  "required_files": [
+    "README.md",
+    "CONTRACT.md",
+    "android/README.md",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/java/com/focusflow/app/FocusFlowApp.kt",
+    "android/app/src/main/java/com/focusflow/app/MainActivity.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/theme/Theme.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/navigation/AppNav.kt",
+    "android/app/src/main/java/com/focusflow/app/domain/model/Task.kt",
+    "android/app/src/main/java/com/focusflow/app/domain/model/Session.kt",
+    "android/app/src/main/java/com/focusflow/app/domain/model/TimerPlan.kt",
+    "android/app/src/main/java/com/focusflow/app/domain/timer/TimerEngine.kt",
+    "android/app/src/main/java/com/focusflow/app/domain/history/HistoryCalculator.kt",
+    "android/app/src/main/java/com/focusflow/app/data/db/AppDatabase.kt",
+    "android/app/src/main/java/com/focusflow/app/data/db/entities/TaskEntity.kt",
+    "android/app/src/main/java/com/focusflow/app/data/db/entities/SessionEntity.kt",
+    "android/app/src/main/java/com/focusflow/app/data/db/dao/TaskDao.kt",
+    "android/app/src/main/java/com/focusflow/app/data/db/dao/SessionDao.kt",
+    "android/app/src/main/java/com/focusflow/app/data/prefs/SettingsDataStore.kt",
+    "android/app/src/main/java/com/focusflow/app/notifications/NotificationChannels.kt",
+    "android/app/src/main/java/com/focusflow/app/notifications/TimerAlarmScheduler.kt",
+    "android/app/src/main/java/com/focusflow/app/notifications/TimerBroadcastReceiver.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/timer/TimerScreen.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/timer/TimerViewModel.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/tasks/TasksScreen.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/tasks/TasksViewModel.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/history/HistoryScreen.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/history/HistoryViewModel.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/settings/SettingsScreen.kt",
+    "android/app/src/main/java/com/focusflow/app/ui/screens/settings/SettingsViewModel.kt",
+    "android/app/src/main/java/com/focusflow/app/export/CsvExporter.kt",
+    "android/app/src/main/java/com/focusflow/app/export/ShareIntents.kt",
+    "android/app/src/test/java/com/focusflow/app/domain/timer/TimerEngineTest.kt",
+    "android/app/src/test/java/com/focusflow/app/domain/history/HistoryCalculatorTest.kt",
+    "android/app/src/androidTest/java/com/focusflow/app/data/db/DaoTests.kt"
+  ],
+  "invariants": [
+    "All clients use the same endpoint paths and JSON fields as defined here.",
+    "No renaming of routes, fields, or tables without updating contract.",
+    "Backend must return JSON errors in a consistent shape.",
+    "Session strategy is 'none': no login endpoints, no cookies, and no JWTs; all endpoints must have auth_required=false.",
+    "GET /health must always return HTTP 200 and body exactly {\"status\":\"ok\"} when service is healthy.",
+    "Error responses must be JSON: {\"error\":{\"code\":string,\"message\":string,\"details\"?:object}}; no HTML error pages.",
+    "Android timer segment types are strictly one of: 'work', 'break', 'long_break' across DB, export CSV, and UI.",
+    "A Session record is persisted only for completed segments; duration_ms must equal end_epoch_ms - start_epoch_ms and must be > 0.",
+    "Streak day counts require >= 1 completed 'work' session per local calendar day; breaks do not count toward streak.",
+    "Classic mode default durations are 25/5/15 with long break after 4 completed work sessions unless user overrides via TimerPlan/AppSettings.",
+    "Pause cap: total paused time per active segment must not exceed AppSettings.max_total_paused_minutes; enforcement must be in the pure TimerEngine to keep rules testable.",
+    "Offline-first: Android app must not require backend availability for core features (timer, tasks, history, settings, export).",
+    "Room schema version must be incremented on any schema change and must include at least one tested migration path (v1->v2).",
+    "CSV export must include one row per completed Session with columns: id,type,start_epoch_ms,end_epoch_ms,duration_ms,linked_task_id,plan_label."
+  ]
+}
